@@ -49,10 +49,16 @@ const setup = async () => {
       { persistent: true }
     );
 
-    await ch.basicConsume(queue_name, { noAck: false }, async (msg) => {
-      console.log("Producer got message back: " + msg.bodyString());
-      await ch.queueDelete(msg.bodyToString() + "_queue");
-    });
+    const consumer = await ch.basicConsume(
+      queue_name,
+      { noAck: false },
+      async (msg) => {
+        console.log("Producer got message back: " + msg.bodyString());
+        console.log("canceling consumer");
+        const resultCancel = await ch.basicCancel(consumer.tag);
+        console.log(resultCancel);
+      }
+    );
 
     resp.end();
   });
