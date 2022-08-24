@@ -10,10 +10,14 @@ const setup = async () => {
   await ch.queueDeclare("queue_2");
   await ch.queueDeclare("queue_3");
   ch.prefetch(1);
-  await ch.basicConsume(args[0], { noAck: false }, (msg) => {
-    console.log(args[0]);
-    console.log(msg.bodyToString());
-    ch.basicAck(msg.deliveryTag);
+  await ch.basicConsume(args[0], { noAck: false }, async (msg) => {
+    console.log("Consumer got message: " + msg.bodyToString());
+    await ch.basicPublish(
+      "",
+      msg.bodyToString() + "_queue",
+      msg.bodyToString()
+    );
+    await ch.basicAck(msg.deliveryTag);
   });
 };
 

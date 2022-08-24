@@ -1,4 +1,5 @@
 const express = require("express");
+const { v4: uuidv4 } = require("uuid");
 
 const app = express();
 const port = 8085;
@@ -25,13 +26,34 @@ const setup = async () => {
   await ch.queueBind("queue_3", "direct_exchange_1", "routing_key_2");
 
   app.get("/message/:content", async (req, resp) => {
+    console.log("Producing");
     const content = req.params.content;
+    const uniuqeId = uuidv4();
+    const queue_name = uniuqeId + "_queue";
+
+    await ch.queueDeclare(queue_name, {
+      autoDelete: true,
+      exclusive: true,
+    });
+
+    console.log(
+      "Sending name of newly generated response queue:" +
+        queue_name +
+        "to the consumer"
+    );
+
     await ch.basicPublish(
       "direct_exchange_1",
       `routing_key_${content}`,
-      "data",
+      uniuqeId,
       { persistent: true }
     );
+
+    await ch.basicConsume(queue_name, { noAck: false }, async (msg) => {
+      console.log("Producer got message back: " + msg.bodyString());
+      await ch.queueDelete(msg.bodyToString() + "_queue");
+    });
+
     resp.end();
   });
 
